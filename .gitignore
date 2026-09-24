@@ -30,8 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files (only refernce example env file in the repo)
 .env*
+! .env.example
 
 # vercel
 .vercel
@@ -39,3 +40,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI-instruction files — PRIVATE to this portfolio project, never published to the public
+# repo (they're uploaded to the chat knowledge base for AI context instead). Covers the whole
+# .claude/ dir (rules + local settings) and the CLAUDE.md context file.
+.claude/
+CLAUDE.md
