@@ -1,0 +1,34 @@
+services:
+  postgres:
+    # Pin the major version for deterministic local development.
+    image: postgres:16-alpine
+
+    container_name: contract-analyzer-postgres
+
+    environment:
+      POSTGRES_DB: contract_analyzer
+      POSTGRES_USER: contract_analyzer
+      POSTGRES_PASSWORD: contract_analyzer
+
+    ports:
+      # The Next.js process runs on the Mac, so it connects through localhost.
+      - "5432:5432"
+
+    volumes:
+      # Keep database state when the container is recreated.
+      - contract_analyzer_postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      # Do not consider the container ready until PostgreSQL accepts connections.
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U contract_analyzer -d contract_analyzer",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  contract_analyzer_postgres_data:
