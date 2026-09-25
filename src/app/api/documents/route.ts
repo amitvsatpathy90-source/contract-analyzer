@@ -4,9 +4,23 @@ import {
   DocumentIngestionError,
   ingestDocument,
 } from "@/server/documents/ingestion";
+import { listDocuments } from "@/server/documents/library";
 import { DocumentValidationError } from "@/server/documents/validation";
 
 export const runtime = "nodejs";
+
+export async function GET() {
+  try {
+    return NextResponse.json({ documents: await listDocuments() });
+  } catch (error) {
+    console.error("Document library request failed", { error });
+
+    return NextResponse.json(
+      { error: "The document library could not be loaded." },
+      { status: 500 },
+    );
+  }
+}
 
 export async function POST(request: Request) {
   let formData: FormData;
