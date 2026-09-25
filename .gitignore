@@ -32,7 +32,7 @@ yarn-error.log*
 
 # env files (only refernce example env file in the repo)
 .env*
-! .env.example
+!.env.example
 
 # vercel
 .vercel
