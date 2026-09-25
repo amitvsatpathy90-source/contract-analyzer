@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 
 import { db, postgresClient } from "@/server/db/client";
-import { documents } from "@/server/db/schema";
+import { documentChunks, documents } from "@/server/db/schema";
 import {
   DocumentIngestionError,
   ingestDocument,
@@ -71,6 +71,17 @@ describe("document ingestion", () => {
     expect(document.status).toBe("READY");
     expect(document.extractedText).toContain("Payment terms are due within thirty days.");
     expect(storage.has(result.storageKey)).toBe(true);
+
+    const chunks = await db
+      .select()
+      .from(documentChunks)
+      .where(eq(documentChunks.documentId, result.id));
+
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].text).toBe(document.extractedText);
+    expect(document.extractedText?.slice(chunks[0].startOffset, chunks[0].endOffset)).toBe(
+      chunks[0].text,
+    );
 
     await db.delete(documents).where(eq(documents.id, result.id));
   });

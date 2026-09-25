@@ -2,8 +2,9 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/server/db/client";
-import { documents } from "@/server/db/schema";
+import { documentChunks, documents } from "@/server/db/schema";
 
+import { chunkDocument } from "./chunking";
 import { extractDocument, UnreadableDocumentError } from "./extraction";
 import { getObjectStorage, type ObjectStorage } from "./storage";
 import { validateUpload, type UploadFile } from "./validation";
@@ -44,16 +45,38 @@ export async function ingestDocument(
     await storage.put(storageKey, upload.bytes, upload.mimeType);
 
     const extraction = await extractDocument(upload.bytes, upload.mimeType);
+    const chunks = chunkDocument(extraction.text);
 
-    await db
-      .update(documents)
-      .set({
-        status: "READY",
-        extractedText: extraction.text,
-        sourceMap: extraction.sourceMap,
-        updatedAt: new Date(),
-      })
-      .where(eq(documents.id, documentId));
+    await db.transaction(async (tx) => {
+      await tx
+        .update(documents)
+        .set({
+          extractedText: extraction.text,
+          sourceMap: extraction.sourceMap,
+          updatedAt: new Date(),
+        })
+        .where(eq(documents.id, documentId));
+
+      await tx.insert(documentChunks).values(
+        chunks.map((chunk) => ({
+          id: randomUUID(),
+          documentId,
+          chunkIndex: chunk.chunkIndex,
+          text: chunk.text,
+          startOffset: chunk.startOffset,
+          endOffset: chunk.endOffset,
+          tokenEstimate: chunk.tokenEstimate,
+        })),
+      );
+
+      await tx
+        .update(documents)
+        .set({
+          status: "READY",
+          updatedAt: new Date(),
+        })
+        .where(eq(documents.id, documentId));
+    });
 
     return {
       id: documentId,
